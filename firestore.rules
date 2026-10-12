@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    function isInitialSuperAdmin() {
+      return isSignedIn() && request.auth.token.email != null && 
+        (request.auth.token.email.lower() == 'amritacharya25@gmail.com' || request.auth.token.email == 'amritacharya25@gmail.com');
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        isInitialSuperAdmin() ||
+        (exists(/databases/$(database)/documents/adminConfig/roles) && 
+         'realAdminEmail' in get(/databases/$(database)/documents/adminConfig/roles).data &&
+         (get(/databases/$(database)/documents/adminConfig/roles).data.realAdminEmail == request.auth.token.email ||
+          get(/databases/$(database)/documents/adminConfig/roles).data.realAdminEmail.lower() == request.auth.token.email.lower())) ||
+        (!exists(/databases/$(database)/documents/adminConfig/roles) && isInitialSuperAdmin())
+      );
+    }
+
+    function isActiveAdminDoc(docPath) {
+      return exists(docPath) &&
+        (!('status' in get(docPath).data) || get(docPath).data.status == 'active') &&
+        (!('expiresAtMillis' in get(docPath).data) || 
+         get(docPath).data.expiresAtMillis == null || 
+         get(docPath).data.expiresAtMillis > request.time.toMillis());
+    }
+
+    function isAssignedAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && isActiveAdminDoc(/databases/$(database)/documents/admins/$(request.auth.token.email))) ||
+        (request.auth.token.email != null && isActiveAdminDoc(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()))) ||
+        isActiveAdminDoc(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+         (!('status' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active') &&
+         (!('expiresAtMillis' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.expiresAtMillis == null || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.expiresAtMillis > request.time.toMillis()))
+      );
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || isAssignedAdmin();
+    }
+
+    function isServerAuthorizedOnWrite() {
+      return request.resource.data != null && 
+             'serverAuthToken' in request.resource.data && 
+             request.resource.data.serverAuthToken == 'khojam_sec_admin_srv_token_2026';
+    }
+
+    function isServerAuthorizedOnDelete() {
+      return resource != null && resource.data != null && 
+             'serverAuthToken' in resource.data && 
+             resource.data.serverAuthToken == 'khojam_sec_admin_srv_token_2026';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Superadmin Roles Configuration (Public read, write restricted to Super Admin or Authorized Server)
+    match /adminConfig/roles {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || 
+                               isServerAuthorizedOnWrite() || 
+                               !exists(/databases/$(database)/documents/adminConfig/roles);
+      allow delete: if false;
+    }
+
+    // App Configuration & Brand Logo (Public read, write allowed for superadmin, admins, or Authorized Server)
+    match /adminConfig/{configId} {
+      allow read: if true;
+      allow create, update: if configId != 'roles' && (isSuperAdmin() || isAdmin() || isServerAuthorizedOnWrite() || !exists(/databases/$(database)/documents/adminConfig/$(configId)));
+      allow delete: if configId != 'roles' && (isSuperAdmin() || isServerAuthorizedOnDelete());
+    }
+
+    // Admins registry (Managed by Super Admin or Authorized Server)
+    match /admins/{adminId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isServerAuthorizedOnWrite();
+      allow delete: if isSuperAdmin() || isAdmin() || isServerAuthorizedOnDelete();
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isOwner(userId) || isAdmin();
+
+      // Subcollection for user saved/favorite rooms
+      match /favorites/{roomId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Rooms Collection (Public read, create/update/delete for users & owners & admins)
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow create: if isSignedIn() || isValidId(roomId);
+      allow update, delete: if isValidId(roomId);
+    }
+
+    // Admin Logs
+    match /adminLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // Contact Inquiries (Public creation with validation; read, update, delete restricted to Admins)
+    match /inquiries/{inquiryId} {
+      allow create: if isValidId(inquiryId);
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

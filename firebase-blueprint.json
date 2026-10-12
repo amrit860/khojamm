@@ -1,0 +1,167 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with role and account status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "status": { "type": "string", "enum": ["active", "blocked"] },
+        "phone": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["uid", "name", "email", "role", "status"]
+    },
+    "Room": {
+      "title": "Room Listing",
+      "description": "Room rental listing posted by owners",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "ownerName": { "type": "string", "maxLength": 100 },
+        "ownerEmail": { "type": "string", "maxLength": 150 },
+        "contactNumber": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "rent": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "location": { "type": "string", "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 100 },
+        "area": { "type": "string", "maxLength": 100 },
+        "landmark": { "type": "string", "maxLength": 150 },
+        "roomType": { "type": "string", "maxLength": 50 },
+        "floor": { "type": "string", "maxLength": 50 },
+        "furnishedStatus": { "type": "string", "enum": ["Furnished", "Semi-Furnished", "Unfurnished"] },
+        "bathroomType": { "type": "string", "enum": ["Attached", "Common"] },
+        "wifiAvailable": { "type": "boolean" },
+        "waterAvailable": { "type": "boolean" },
+        "parkingAvailable": { "type": "boolean" },
+        "kitchenAccess": { "type": "boolean" },
+        "genderPreference": { "type": "string", "enum": ["Any", "Male", "Female", "Family"] },
+        "coverImageUrl": { "type": "string", "maxLength": 1000 },
+        "imageUrls": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "expiring_soon", "expired", "removed", "unavailable"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "expiresAt": { "type": "string" },
+        "lastAvailabilityCheckAt": { "type": "string" },
+        "publishedAt": { "type": "string" }
+      },
+      "required": ["id", "ownerId", "title", "rent", "location", "status", "createdAt"]
+    },
+    "Favorite": {
+      "title": "Favorite Room",
+      "description": "User saved room reference",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["roomId", "userId", "createdAt"]
+    },
+    "Admin": {
+      "title": "Admin Record",
+      "description": "Authorized administrator document storing assigned role and duration",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "enum": ["admin", "super_admin"] },
+        "assignedAt": { "type": "string" },
+        "assignedBy": { "type": "string", "maxLength": 150 },
+        "expiresAt": { "type": "string" },
+        "expiresAtMillis": { "type": "number" },
+        "expiredAt": { "type": "string" },
+        "durationHours": { "type": "number" },
+        "durationLabel": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["active", "expired"] }
+      },
+      "required": ["email", "status"]
+    },
+    "AdminLog": {
+      "title": "Admin Audit Log",
+      "description": "Audit trail for actions performed in admin panel",
+      "type": "object",
+      "properties": {
+        "adminUid": { "type": "string", "maxLength": 128 },
+        "adminEmail": { "type": "string", "maxLength": 150 },
+        "action": { "type": "string", "maxLength": 100 },
+        "targetType": { "type": "string", "maxLength": 50 },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["adminUid", "action", "timestamp"]
+    },
+    "AdminConfig": {
+      "title": "App Administration Configuration",
+      "description": "Global dynamic configuration for brand logo, showcase photos, and roles",
+      "type": "object",
+      "properties": {
+        "realAdminEmail": { "type": "string", "maxLength": 150 },
+        "logoUrl": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "Inquiry": {
+      "title": "Contact Inquiry",
+      "description": "User and visitor contact inquiries submitted through Contact Us form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "senderEmail": { "type": "string", "maxLength": 150 },
+        "senderPhone": { "type": "string", "maxLength": 30 },
+        "subject": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 5000 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "senderType": { "type": "string", "enum": ["registered", "guest"] },
+        "status": { "type": "string", "enum": ["New", "Read", "Replied", "Resolved"] },
+        "emailDeliveryStatus": { "type": "string", "enum": ["Pending", "Sent", "Failed"] },
+        "emailSentAt": { "type": "string" },
+        "lastEmailError": { "type": "string", "maxLength": 1000 },
+        "recipients": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "senderName", "senderEmail", "subject", "message", "senderType", "status", "emailDeliveryStatus", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/adminConfig/{configId}": {
+      "schema": "AdminConfig",
+      "description": "Global system configurations for branding, showcase, and roles"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Profiles for registered users"
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Public and owner room listings"
+    },
+    "/users/{userId}/favorites/{roomId}": {
+      "schema": "Favorite",
+      "description": "User wishlists and bookmarked rooms"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Superusers with administrative access"
+    },
+    "/adminLogs/{logId}": {
+      "schema": "AdminLog",
+      "description": "Audit logs for moderation actions"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "User and guest contact inquiries received"
+    }
+  }
+}
